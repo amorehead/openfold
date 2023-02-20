@@ -10,7 +10,7 @@ import ml_collections as mlc
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from lightning.pytorch import LightningDataModule
+from pytorch_lightning import LightningDataModule
 from torch.utils.data import RandomSampler
 
 from openfold.data import (
