@@ -250,7 +250,7 @@ def train(args):
 
     module = OpenFoldWrapper(config)
 
-    # data_module = DummyDataLoader("new_batch.pickle")
+    # datamodule = DummyDataLoader("new_batch.pickle")
     datamodule = OpenFoldDataModule(
         config=config.data,
         batch_seed=args.seed,
@@ -465,3 +465,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     train(args)
+
+
+
+## python3 train_openfold.py tests/test_data/mmcifs/ tests/test_data/alignments/ tests/test_data/mmcifs/ output_dir/ 2021-10-10 --template_release_dates_cache_path tests/test_data/mmcif_cache.json --precision bf16 --gpus 2 --replace_sampler_ddp=True --seed 4242022 --deepspeed_config_path deepspeed_config.json --checkpoint_every_epoch --train_chain_data_cache_path tests/test_data/chain_data_cache.json
