@@ -98,7 +98,8 @@ class OpenFoldWrapper(pl.LightningModule):
         if(self.ema.device != batch["aatype"].device):
             self.ema.to(batch["aatype"].device)
 
-        print(batch)
+        for k, v in batch.items():
+            print(k, v.shape if isinstance(v, torch.Tensor) else v)
 
         # Run the model
         outputs = self(batch)
