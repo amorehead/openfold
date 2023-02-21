@@ -98,6 +98,8 @@ class OpenFoldWrapper(pl.LightningModule):
         if(self.ema.device != batch["aatype"].device):
             self.ema.to(batch["aatype"].device)
 
+        print(batch)
+
         # Run the model
         outputs = self(batch)
 
@@ -264,7 +266,7 @@ def main(args):
         args.config_preset, 
         train=True, 
         low_prec=(str(args.precision) == "16")
-    ) 
+    )
     
     model_module = OpenFoldWrapper(config)
     if(args.resume_from_ckpt):
