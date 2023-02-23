@@ -1,15 +1,12 @@
 import argparse
-import logging
 import os
-import sys
 
-import lightning.pytorch as pl
-from lightning.pytorch.callbacks.lr_monitor import LearningRateMonitor
-from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
-from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.strategies import DeepSpeedStrategy, DDPStrategy
-from lightning.pytorch.plugins.environments import SLURMEnvironment
 import torch
+from lightning.fabric import Fabric
+from lightning.fabric.strategies import DDPStrategy, DeepSpeedStrategy
+from lightning.pytorch import LightningModule
+
+from tqdm import tqdm
 
 from openfold.config import model_config
 from openfold.data.data_modules import (
@@ -17,16 +14,10 @@ from openfold.data.data_modules import (
     DummyDataLoader,
 )
 from openfold.model.model import AlphaFold
-from openfold.model.torchscript import script_preset_
 from openfold.np import residue_constants
-from openfold.utils.argparse import remove_arguments
-from openfold.utils.callbacks import (
-    EarlyStoppingVerbose,
-)
 from openfold.utils.exponential_moving_average import ExponentialMovingAverage
 from openfold.utils.loss import AlphaFoldLoss, lddt_ca
 from openfold.utils.lr_schedulers import AlphaFoldLRScheduler
-from openfold.utils.seed import seed_everything
 from openfold.utils.superimposition import superimpose
 from openfold.utils.tensor_utils import tensor_tree_map
 from openfold.utils.validation_metrics import (
@@ -34,18 +25,10 @@ from openfold.utils.validation_metrics import (
     gdt_ts,
     gdt_ha,
 )
-from openfold.utils.import_weights import (
-    import_jax_weights_,
-)
-from scripts.zero_to_fp32 import (
-    get_fp32_state_dict_from_zero_checkpoint,
-    get_global_step_from_zero_checkpoint
-)
-
-from openfold.utils.logger import PerformanceLoggingCallback
+from openfold.utils.import_weights import import_jax_weights_
 
 
-class OpenFoldWrapper(pl.LightningModule):
+class OpenFoldWrapper(LightningModule):
     def __init__(self, config):
         super(OpenFoldWrapper, self).__init__()
         self.config = config
@@ -253,134 +236,61 @@ class OpenFoldWrapper(pl.LightningModule):
         )
 
 
-def main(args):
-    seed_everything(args.seed) 
+def train(args):
+    if(args.deepspeed_config_path is not None):
+        strategy = DeepSpeedStrategy(
+            config=args.deepspeed_config_path,
+        )
+    else:
+        strategy = DDPStrategy()
+
+    fabric = Fabric(
+        accelerator="cuda", 
+        devices=8, 
+        strategy=strategy,
+        precision="bf16",
+    )
+    fabric.launch()
+
+    fabric.seed_everything(args.seed)
 
     config = model_config(
-        args.config_preset, 
-        train=True, 
-        low_prec=(str(args.precision) == "16")
+        args.config_preset,
+        train=True,
+        low_prec=(fabric.precision.precision == "16")
     )
-    
-    model_module = OpenFoldWrapper(config)
-    if(args.resume_from_ckpt):
-        if(os.path.isdir(args.resume_from_ckpt)):  
-            last_global_step = get_global_step_from_zero_checkpoint(args.resume_from_ckpt)
-        else:
-            sd = torch.load(args.resume_from_ckpt)
-            last_global_step = int(sd['global_step'])
-        model_module.resume_last_lr_step(last_global_step)
-        logging.info("Successfully loaded last lr step...")
-    if(args.resume_from_ckpt and args.resume_model_weights_only):
-        if(os.path.isdir(args.resume_from_ckpt)):
-            sd = get_fp32_state_dict_from_zero_checkpoint(args.resume_from_ckpt)
-        else:
-            sd = torch.load(args.resume_from_ckpt)
-        sd = {k[len("module."):]:v for k,v in sd.items()}
-        model_module.load_state_dict(sd)
-        logging.info("Successfully loaded model weights...")
-    if(args.resume_from_jax_params):
-        model_module.load_from_jax(args.resume_from_jax_params)
-        logging.info(f"Successfully loaded JAX parameters at {args.resume_from_jax_params}...")
- 
-    # TorchScript components of the model
-    if(args.script_modules):
-        script_preset_(model_module)
 
-    # data_module = DummyDataLoader("tests/test_data/sample_feats.pickle")
-    data_module = OpenFoldDataModule(
+    module = OpenFoldWrapper(config)
+
+    # datamodule = DummyDataLoader("new_batch.pickle")
+    datamodule = OpenFoldDataModule(
         config=config.data,
         batch_seed=args.seed,
         **vars(args)
     )
 
-    data_module.prepare_data()
-    data_module.setup()
-    
-    callbacks = []
-    if(args.checkpoint_every_epoch):
-        mc = ModelCheckpoint(
-            every_n_epochs=1,
-            auto_insert_metric_name=False,
-            save_top_k=-1,
-        )
-        callbacks.append(mc)
+    optimization_config = module.configure_optimizers()
+    optimizer, lr_scheduler = optimization_config["optimizer"], optimization_config["lr_scheduler"]["scheduler"]
 
-    if(args.early_stopping):
-        es = EarlyStoppingVerbose(
-            monitor="val/lddt_ca",
-            min_delta=args.min_delta,
-            patience=args.patience,
-            verbose=False,
-            mode="max",
-            check_finite=True,
-            strict=True,
-        )
-        callbacks.append(es)
+    # Set up the model and optimizer with Fabric
+    module, optimizer = fabric.setup(module, optimizer)
 
-    if(args.log_performance):
-        global_batch_size = args.num_nodes * args.devices
-        perf = PerformanceLoggingCallback(
-            log_file=os.path.join(args.output_dir, "performance_log.json"),
-            global_batch_size=global_batch_size,
-        )
-        callbacks.append(perf)
+    # datamodule.prepare_data()
+    datamodule.setup()
 
-    if(args.log_lr):
-        lr_monitor = LearningRateMonitor(logging_interval="step")
-        callbacks.append(lr_monitor)
+    for epoch in range(1000):
+        train_dataloader = datamodule.train_dataloader()
+        train_dataloader = fabric.setup_dataloaders(train_dataloader)
 
-    loggers = []
-    if(args.wandb):
-        wdb_logger = WandbLogger(
-            name=args.experiment_name,
-            save_dir=args.output_dir,
-            id=args.wandb_id,
-            project=args.wandb_project,
-            **{"entity": args.wandb_entity}
-        )
-        loggers.append(wdb_logger)
+        module.train()
+        for batch_idx, batch in tqdm(enumerate(train_dataloader)):
+            module.on_before_zero_grad()
+            optimizer.zero_grad()
 
-    if(args.deepspeed_config_path is not None):
-        strategy = DeepSpeedStrategy(
-            config=args.deepspeed_config_path,
-        )
-        if(args.wandb):
-            wdb_logger.experiment.save(args.deepspeed_config_path)
-            wdb_logger.experiment.save("openfold/config.py")
-    elif args.devices > 1 or args.num_nodes > 1:
-        strategy = DDPStrategy()
-    else:
-        strategy = None
- 
-    if(args.wandb):
-        freeze_path = f"{wdb_logger.experiment.dir}/package_versions.txt"
-        os.system(f"{sys.executable} -m pip freeze > {freeze_path}")
-        wdb_logger.experiment.save(f"{freeze_path}")
-
-    trainer = pl.Trainer(
-        default_root_dir=args.output_dir,
-        accelerator="cuda",
-        devices=args.devices,
-        num_nodes=args.num_nodes,
-        strategy=strategy,
-        precision=args.precision,
-        callbacks=callbacks,
-        logger=loggers,
-        num_sanity_val_steps=0,
-        reload_dataloaders_every_n_epochs=1
-    )
-
-    if(args.resume_model_weights_only):
-        ckpt_path = None
-    else:
-        ckpt_path = args.resume_from_ckpt
-
-    trainer.fit(
-        model_module, 
-        datamodule=data_module,
-        ckpt_path=ckpt_path,
-    )
+            loss = module.training_step(batch, batch_idx)
+            fabric.backward(loss)
+            optimizer.step()
+            lr_scheduler.step()
 
 
 def bool_type(bool_str: str):
@@ -565,16 +475,5 @@ if __name__ == "__main__":
         help="Distillation alignment index. See the README for instructions."
     )
 
-    # Trainer arguments
-    parser.add_argument("--devices", type=int, default=1)
-    parser.add_argument("--num_nodes", type=int, default=1)
-    parser.add_argument("--precision", type=str, default="32")
     args = parser.parse_args()
-
-    if(str(args.precision) == "16" and args.deepspeed_config_path is not None):
-        raise ValueError("DeepSpeed and FP16 training are not compatible")
-
-    if(args.resume_from_jax_params is not None and args.resume_from_ckpt is not None):
-        raise ValueError("Choose between loading pretrained Jax-weights and a checkpoint-path")
-
-    main(args)
+    train(args)

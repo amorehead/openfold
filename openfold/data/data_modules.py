@@ -10,6 +10,7 @@ import ml_collections as mlc
 import numpy as np
 import pytorch_lightning as pl
 import torch
+from pytorch_lightning import LightningDataModule
 from torch.utils.data import RandomSampler
 
 from openfold.data import (
@@ -511,7 +512,7 @@ class OpenFoldDataLoader(torch.utils.data.DataLoader):
         return _batch_prop_gen(it)
 
 
-class OpenFoldDataModule(pl.LightningDataModule):
+class OpenFoldDataModule(LightningDataModule):
     def __init__(self,
         config: mlc.ConfigDict,
         template_mmcif_dir: str,
