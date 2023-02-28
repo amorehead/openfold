@@ -12,7 +12,7 @@
   },
   "zero_optimization": {
     "stage": 2,
-    "cpu_offload": true,
+    "offload_optimizer": true,
     "contiguous_gradients": true
   },
   "activation_checkpointing": {

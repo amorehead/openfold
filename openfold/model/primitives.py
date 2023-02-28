@@ -33,7 +33,6 @@ import torch.nn as nn
 from scipy.stats import truncnorm
 
 from openfold.utils.checkpointing import get_checkpoint_fn
-from openfold.utils.chunk_utils import _chunk_slice
 from openfold.utils.kernel.attention_core import attention_core
 from openfold.utils.precision_utils import is_fp16_enabled
 from openfold.utils.tensor_utils import (
@@ -196,7 +195,7 @@ class LayerNorm(nn.Module):
         d = x.dtype
         deepspeed_is_initialized = (
             deepspeed_is_installed and 
-            deepspeed.utils.is_initialized()
+            deepspeed.comm.is_initialized()
         )
         if(d is torch.bfloat16 and not deepspeed_is_initialized):
             with torch.cuda.amp.autocast(enabled=False):
@@ -228,7 +227,7 @@ def softmax_no_cast(t: torch.Tensor, dim: int = -1) -> torch.Tensor:
     d = t.dtype
     deepspeed_is_initialized = (
         deepspeed_is_installed and 
-        deepspeed.utils.is_initialized()
+        deepspeed.comm.is_initialized()
     )
     if(d is torch.bfloat16 and not deepspeed_is_initialized):
         with torch.cuda.amp.autocast(enabled=False):
