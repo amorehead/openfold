@@ -602,7 +602,7 @@ class OpenFoldDataModule(LightningDataModule):
             with open(distillation_alignment_index_path, "r") as fp:
                 self.distillation_alignment_index = json.load(fp)
 
-    def setup(self):
+    def setup(self, stage=None):
         # Most of the arguments are the same for the three datasets 
         dataset_gen = partial(OpenFoldSingleDataset,
             template_mmcif_dir=self.template_mmcif_dir,
