@@ -4,27 +4,27 @@ channels:
   - bioconda
   - pytorch
 dependencies:
-  - conda-forge::python=3.10
-  - conda-forge::setuptools=59.5.0
+  - conda-forge::python==3.10
+  - conda-forge::setuptools
   - conda-forge::pip
-  - conda-forge::openmm=7.5.1
+  - conda-forge::openmm
   - conda-forge::pdbfixer
   - conda-forge::cudatoolkit==11.6.*
-  - bioconda::hmmer==3.3.2
-  - bioconda::hhsuite==3.3.0
-  - bioconda::kalign2==2.04
-  - pytorch::pytorch=1.13.*
+  - bioconda::hmmer
+  - bioconda::hhsuite
+  - bioconda::kalign2
+  - pytorch::pytorch==1.13.*
   - pip:
-      - biopython==1.79
-      - deepspeed==0.7.7
-      - dm-tree==0.1.6
-      - ml-collections==0.1.0
-      - numpy==1.21.2
-      - PyYAML==5.4.1
-      - requests==2.26.0
-      - scipy==1.7.1
-      - tqdm==4.62.2
-      - typing-extensions==3.10.0.2
+      - biopython
+      - deepspeed
+      - dm-tree
+      - ml-collections
+      - numpy
+      - PyYAML
+      - requests
+      - scipy
+      - tqdm
+      - typing-extensions
       - lightning==2.0.0rc0
-      - wandb==0.12.21
+      - wandb
       - git+https://github.com/NVIDIA/dllogger.git
