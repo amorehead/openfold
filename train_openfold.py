@@ -19,7 +19,6 @@ from openfold.data.data_modules import (
 from openfold.model.model import AlphaFold
 from openfold.model.torchscript import script_preset_
 from openfold.np import residue_constants
-from openfold.utils.argparse import remove_arguments
 from openfold.utils.callbacks import (
     EarlyStoppingVerbose,
 )
@@ -135,8 +134,8 @@ class OpenFoldWrapper(pl.LightningModule):
         )
 
         self._log(loss_breakdown, batch, outputs, train=False)
-        
-    def validation_epoch_end(self, _):
+
+    def on_validation_epoch_end(self):
         # Restore the model weights to normal
         self.model.load_state_dict(self.cached_weights)
         self.cached_weights = None
