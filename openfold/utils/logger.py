@@ -18,7 +18,7 @@ import time
 import dllogger as logger
 from dllogger import JSONStreamBackend, StdOutBackend, Verbosity
 import numpy as np
-from pytorch_lightning import Callback
+from lightning.pytorch.callbacks import Callback
 import torch.cuda.profiler as profiler
 
 

@@ -7,10 +7,8 @@ import pickle
 from typing import Optional, Sequence, List, Any
 
 import ml_collections as mlc
-import numpy as np
-import pytorch_lightning as pl
 import torch
-from pytorch_lightning import LightningDataModule
+from lightning.pytorch import LightningDataModule
 from torch.utils.data import RandomSampler
 
 from openfold.data import (
@@ -742,7 +740,7 @@ class DummyDataset(torch.utils.data.Dataset):
         return 1000
 
 
-class DummyDataLoader(pl.LightningDataModule):
+class DummyDataLoader(LightningDataModule):
     def __init__(self, batch_path):
         super().__init__()
         self.dataset = DummyDataset(batch_path)
