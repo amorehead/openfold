@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 
-import lightning.pytorch as pl
+from lightning.pytorch import LightningModule, Trainer
 from lightning.pytorch.callbacks.lr_monitor import LearningRateMonitor
 from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 from lightning.pytorch.loggers import WandbLogger
@@ -44,7 +44,7 @@ from scripts.zero_to_fp32 import (
 from openfold.utils.logger import PerformanceLoggingCallback
 
 
-class OpenFoldWrapper(pl.LightningModule):
+class OpenFoldWrapper(LightningModule):
     def __init__(self, config):
         super(OpenFoldWrapper, self).__init__()
         self.config = config
@@ -357,7 +357,7 @@ def main(args):
         os.system(f"{sys.executable} -m pip freeze > {freeze_path}")
         wdb_logger.experiment.save(f"{freeze_path}")
 
-    trainer = pl.Trainer(
+    trainer = Trainer(
         default_root_dir=args.output_dir,
         accelerator="cuda",
         devices=args.devices,
