@@ -722,7 +722,7 @@ class OpenFoldDataModule(LightningDataModule):
     def val_dataloader(self):
         if(self.eval_dataset is not None):
             return self._gen_dataloader("eval")
-        return None
+        return []
 
     def predict_dataloader(self):
         return self._gen_dataloader("predict") 
