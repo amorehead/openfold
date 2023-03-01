@@ -586,7 +586,7 @@ class DataPipeline:
                         hits = parsers.parse_hhr(fp.read())
                     all_hits[f] = hits
 
-        print(all_hits)
+        print(list(all_hits.keys())[:10])
         return all_hits
 
     def _get_msas(self,
