@@ -21,7 +21,7 @@ from typing import Mapping, Optional, Sequence, Any
 import numpy as np
 
 from openfold.data import templates, parsers, mmcif_parsing
-from openfold.data.templates import get_custom_template_features
+from openfold.data.templates import get_custom_template_features, _get_pdb_id_and_chain
 from openfold.data.tools import jackhmmer, hhblits, hhsearch
 from openfold.data.tools.utils import to_date 
 from openfold.np import residue_constants, protein
@@ -560,7 +560,6 @@ class DataPipeline:
     ) -> Mapping[str, Any]:
         all_hits = {}
         if(alignment_index is not None):
-            print("ifffffffff")
             fp = open(os.path.join(alignment_dir, alignment_index["db"]), 'rb')
 
             def read_template(start, size):
@@ -576,7 +575,6 @@ class DataPipeline:
 
             fp.close()
         else:
-            print("elseeeeeeee")
             for f in os.listdir(alignment_dir):
                 path = os.path.join(alignment_dir, f)
                 ext = os.path.splitext(f)[-1]
@@ -584,9 +582,17 @@ class DataPipeline:
                 if(ext == ".hhr"):
                     with open(path, "r") as fp:
                         hits = parsers.parse_hhr(fp.read())
-                    all_hits[f] = hits
 
-        print(list(all_hits.keys())[:10])
+                    hit_pdb_code, hit_chain_id = _get_pdb_id_and_chain(hits)
+                    mmcif_dir = "data/pdb_mmcif/mmcif_files"
+                    cif_file = os.path.join(mmcif_dir, hit_pdb_code + ".cif")
+                    if os.path.isfile(cif_file):
+                        all_hits[f] = hits
+                    else:
+                        print("does not exist, skipping: ", cif_file)
+
+
+
         return all_hits
 
     def _get_msas(self,
