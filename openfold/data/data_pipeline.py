@@ -560,6 +560,7 @@ class DataPipeline:
     ) -> Mapping[str, Any]:
         all_hits = {}
         if(alignment_index is not None):
+            print("ifffffffff")
             fp = open(os.path.join(alignment_dir, alignment_index["db"]), 'rb')
 
             def read_template(start, size):
@@ -575,6 +576,7 @@ class DataPipeline:
 
             fp.close()
         else:
+            print("elseeeeeeee")
             for f in os.listdir(alignment_dir):
                 path = os.path.join(alignment_dir, f)
                 ext = os.path.splitext(f)[-1]
@@ -584,6 +586,7 @@ class DataPipeline:
                         hits = parsers.parse_hhr(fp.read())
                     all_hits[f] = hits
 
+        print(all_hits)
         return all_hits
 
     def _get_msas(self,
