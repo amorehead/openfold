@@ -286,6 +286,9 @@ def main(args):
     if(args.script_modules):
         script_preset_(model_module)
 
+    if args.compile:
+        model_module = torch.compile(model_module)
+
     # data_module = DummyDataLoader("tests/test_data/sample_feats.pickle")
     data_module = OpenFoldDataModule(
         config=config.data,
@@ -524,6 +527,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--script_modules", type=bool_type, default=False,
         help="Whether to TorchScript eligible components of them model"
+    )
+    parser.add_argument(
+        "--compile", action="store_true", default=False,
+        help="Whether to `torch.compile` the model (only available with torch >= 2.0.0)"
     )
     parser.add_argument(
         "--train_chain_data_cache_path", type=str, default=None,
