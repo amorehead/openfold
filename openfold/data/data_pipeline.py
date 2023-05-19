@@ -21,7 +21,7 @@ from typing import Mapping, Optional, Sequence, Any
 import numpy as np
 
 from openfold.data import templates, parsers, mmcif_parsing
-from openfold.data.templates import get_custom_template_features, _get_pdb_id_and_chain
+from openfold.data.templates import get_custom_template_features
 from openfold.data.tools import jackhmmer, hhblits, hhsearch
 from openfold.data.tools.utils import to_date 
 from openfold.np import residue_constants, protein
@@ -582,17 +582,6 @@ class DataPipeline:
                 if(ext == ".hhr"):
                     with open(path, "r") as fp:
                         hits = parsers.parse_hhr(fp.read())
-
-                    # HACK: I don't have all data, need to skip the files that don't exist
-                    all_hits[f] = []
-                    for hit in hits:
-                        hit_pdb_code, hit_chain_id = _get_pdb_id_and_chain(hit)
-                        mmcif_dir = "data/pdb_mmcif/mmcif_files"
-                        cif_file = os.path.join(mmcif_dir, hit_pdb_code + ".cif")
-                        if os.path.isfile(cif_file):
-                            all_hits[f].append(hit)
-                    if not all_hits[f]:
-                        del all_hits[f]
 
         return all_hits
 
