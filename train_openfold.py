@@ -289,7 +289,6 @@ def main(args):
     if args.compile:
         model_module = torch.compile(model_module)
 
-    # data_module = DummyDataLoader("tests/test_data/sample_feats.pickle")
     data_module = OpenFoldDataModule(
         config=config.data,
         batch_seed=args.seed,
@@ -464,7 +463,7 @@ if __name__ == "__main__":
         help="Whether to use a reduced version of the BFD database"
     )
     parser.add_argument(
-        "--seed", type=int, default=4242022,
+        "--seed", type=int, default=None,
         help="Random seed"
     )
     parser.add_argument(
