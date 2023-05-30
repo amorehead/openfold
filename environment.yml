@@ -16,7 +16,7 @@ dependencies:
   - pytorch::pytorch=1.12.*
   - pip:
       - biopython==1.79
-      - deepspeed==0.9.3+49a73549
+      - git+https://github.com/microsoft/DeepSpeed.git@49a73549b91cc0a589d3a44e59dd4687e774d296
       - dm-tree==0.1.6
       - ml-collections==0.1.0
       - numpy==1.21.2
