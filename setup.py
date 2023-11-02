@@ -115,7 +115,7 @@ setup(
     author='Gustaf Ahdritz & DeepMind',
     author_email='gahdritz@gmail.com',
     license='Apache License, Version 2.0',
-    url='https://github.com/aqlaboratory/openfold',
+    url='https://github.com/amorehead/openfold',
     packages=find_packages(exclude=["tests", "scripts"]),
     include_package_data=True,
     package_data={
