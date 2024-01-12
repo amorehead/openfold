@@ -90,7 +90,7 @@ if bare_metal_major != -1:
         extra_compile_args={
             'cxx': ['-O3'] + version_dependent_macros,
             'nvcc': (
-                ['-O3', '-allow-unsupported-compiler', '--use_fast_math'] +
+                ['-O3', '--use_fast_math'] +
                 version_dependent_macros +
                 extra_cuda_flags
             ),
