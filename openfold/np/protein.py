@@ -322,7 +322,7 @@ def to_pdb(prot: Protein) -> str:
     n = aatype.shape[0]
     atom_index = 1
     prev_chain_index = 0
-    chain_tags = string.ascii_uppercase
+    chain_tags = string.ascii_uppercase + string.ascii_lowercase
     # Add all atom sites.
     for i in range(n):
         res_name_3 = res_1to3(aatype[i])
